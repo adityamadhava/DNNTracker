@@ -12,7 +12,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'dev-secret-change-in-production')
 DEBUG = os.environ.get('DEBUG', 'True').lower() in ('true', '1', 'yes')
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,.vercel.app').split(',')
+_allowed = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,.vercel.app').strip()
+ALLOWED_HOSTS = [h.strip() for h in _allowed.split(',') if h.strip()]
+# Always allow Vercel deployment URLs (preview and production)
+if '.vercel.app' not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append('.vercel.app')
 
 # Application definition
 INSTALLED_APPS = [
