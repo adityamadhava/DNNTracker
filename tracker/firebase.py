@@ -18,12 +18,12 @@ def _get_client():
     if not creds:
         return None
     import firebase_admin
-    from firebase_admin import credentials
+    from firebase_admin import credentials, firestore
     try:
         firebase_admin.get_app()
     except ValueError:
         firebase_admin.initialize_app(credentials.Certificate(creds))
-    _client = firebase_admin.firestore.client()
+    _client = firestore.client()
     return _client
 
 
