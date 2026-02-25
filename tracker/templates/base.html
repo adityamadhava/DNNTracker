@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}DNN Revision Tracker{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            dark: { 900: '#0f172a', 800: '#1e293b', 700: '#334155', 600: '#475569' },
+            accent: { green: '#22c55e', yellow: '#eab308', gray: '#64748b' }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    [x-cloak] { display: none !important; }
+    .progress-ring-circle { transition: stroke-dashoffset 0.4s ease; }
+  </style>
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen antialiased">
+  <nav class="border-b border-gray-700 bg-gray-900/95 sticky top-0 z-10">
+    <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+      <a href="{% url 'dashboard' %}" class="font-semibold text-lg text-emerald-400">DNN Tracker</a>
+      <div class="flex items-center gap-4">
+        <span class="text-sm text-gray-400">Streak: <strong class="text-amber-400">{{ streak_days|default:0 }}</strong> days</span>
+      </div>
+    </div>
+  </nav>
+  <main class="max-w-4xl mx-auto px-4 py-6 pb-12">
+    {% block content %}{% endblock %}
+  </main>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}{{ topic.topic_name }} — DNN Tracker{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+  <a href="{% url 'dashboard' %}" class="text-sm text-gray-400 hover:text-emerald-400 mb-4 inline-block">← Back to dashboard</a>
+  <h1 class="text-2xl font-bold text-gray-100">{{ topic.topic_name }}</h1>
+  <div class="flex flex-wrap items-center gap-3 mt-2">
+    <div class="flex items-center gap-2">
+      <div class="w-32 h-2 bg-gray-700 rounded-full overflow-hidden">
+        <div class="h-full rounded-full {% if topic.progress_pct == 100 %}bg-emerald-500{% elif topic.progress_pct > 0 %}bg-amber-500{% else %}bg-gray-600{% endif %}" style="width: {{ topic.progress_pct }}%"></div>
+      </div>
+      <span class="text-sm text-gray-400">{{ topic.progress_pct }}%</span>
+    </div>
+    <form id="difficulty-form" class="flex items-center gap-2" method="post" action="{% url 'set_difficulty' topic.id %}">
+      {% csrf_token %}
+      <label for="difficulty" class="text-sm text-gray-500">Difficulty:</label>
+      <select name="difficulty" id="difficulty" class="bg-gray-700 border border-gray-600 rounded-lg px-3 py-1.5 text-sm text-gray-200 focus:ring-1 focus:ring-emerald-500">
+        <option value="">—</option>
+        {% for d in difficulty_choices %}
+        <option value="{{ d }}" {% if topic.difficulty == d %}selected{% endif %}>{{ d }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="text-sm text-emerald-400 hover:text-emerald-300">Save</button>
+    </form>
+  </div>
+</div>
+
+<div class="rounded-xl bg-gray-800 border border-gray-700 p-5 mb-6">
+  <h2 class="font-semibold text-gray-200 mb-3">Subtopics</h2>
+  <ul class="space-y-2">
+    {% for sub in topic.subtopics %}
+    <li class="flex items-center gap-3 py-2 border-b border-gray-700 last:border-0">
+      <input type="checkbox"
+             id="sub-{{ forloop.counter0 }}"
+             data-topic-id="{{ topic.id }}"
+             data-index="{{ forloop.counter0 }}"
+             class="subtopic-cb w-5 h-5 rounded border-gray-600 bg-gray-700 text-emerald-500 focus:ring-emerald-500"
+             {% if forloop.counter0 in topic.completed_subtopics %}checked{% endif %}>
+      <label for="sub-{{ forloop.counter0 }}" class="flex-1 text-gray-300 cursor-pointer
+        {% if forloop.counter0 in topic.completed_subtopics %}line-through text-gray-500{% endif %}">
+        {{ sub }}
+      </label>
+      <span class="w-16 text-right text-sm {% if forloop.counter0 in topic.completed_subtopics %}text-emerald-400{% else %}text-gray-500{% endif %}">
+        {% if forloop.counter0 in topic.completed_subtopics %}Done{% else %}—{% endif %}
+      </span>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+
+<div class="rounded-xl bg-gray-800 border border-gray-700 p-5">
+  <h2 class="font-semibold text-gray-200 mb-3">Notes</h2>
+  <form id="notes-form" method="post" action="{% url 'add_notes' topic.id %}">
+    {% csrf_token %}
+    <textarea name="notes" id="notes" rows="4" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-gray-200 placeholder-gray-500 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Your notes for this topic...">{{ topic.notes|default:'' }}</textarea>
+    <button type="submit" class="mt-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-medium">Save notes</button>
+  </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+  var csrf = document.querySelector('[name=csrfmiddlewaretoken]');
+  var csrfToken = csrf ? csrf.value : '';
+
+  document.querySelectorAll('.subtopic-cb').forEach(function(cb) {
+    cb.addEventListener('change', function() {
+      var topicId = this.dataset.topicId;
+      var index = parseInt(this.dataset.index, 10);
+      var completed = this.checked;
+      var li = this.closest('li');
+      var label = li.querySelector('label');
+      var status = li.querySelector('.w-16');
+
+      fetch('/api/topic/' + encodeURIComponent(topicId) + '/progress/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'X-CSRFToken': csrfToken
+        },
+        body: 'subtopic_index=' + index + '&completed=' + (completed ? 'true' : 'false') + '&csrfmiddlewaretoken=' + encodeURIComponent(csrfToken)
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.ok) {
+          if (completed) {
+            label.classList.add('line-through', 'text-gray-500');
+            status.textContent = 'Done';
+            status.classList.remove('text-gray-500');
+            status.classList.add('text-emerald-400');
+          } else {
+            label.classList.remove('line-through', 'text-gray-500');
+            status.textContent = '—';
+            status.classList.add('text-gray-500');
+            status.classList.remove('text-emerald-400');
+          }
+        }
+      })
+      .catch(function() {});
+    });
+  });
+
+  // Use first form's csrf if notes form exists
+  var notesForm = document.getElementById('notes-form');
+  if (notesForm && !csrf) {
+    csrf = notesForm.querySelector('[name=csrfmiddlewaretoken]');
+    if (csrf) csrfToken = csrf.value;
+  }
+})();
+</script>
+{% endblock %}
