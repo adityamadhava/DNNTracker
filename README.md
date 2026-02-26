@@ -73,41 +73,54 @@ python manage.py runserver
 
 Open http://127.0.0.1:8000/
 
-## Deployment on Vercel
+## Deploy to Vercel
 
-### 1. Install Vercel CLI (optional)
+### Step 1: Import project on Vercel
+
+1. Go to [vercel.com](https://vercel.com) and sign in (e.g. with GitHub).
+2. Click **Add New…** → **Project**.
+3. **Import** your repo: `adityamadhava/DNNTracker` (or connect GitHub if needed and select it).
+4. Leave **Framework Preset** as None; **Root Directory** as `.`; **Build Command** and **Output Directory** empty. Vercel will use `vercel.json` and `api/wsgi.py`.
+5. Do **not** deploy yet — add environment variables first.
+
+### Step 2: Set environment variables
+
+In the same import screen (or later: **Project → Settings → Environment Variables**), add:
+
+| Name | Value | Notes |
+|------|--------|--------|
+| `DJANGO_SECRET_KEY` | A long random string | e.g. run `python3 -c "import secrets; print(secrets.token_urlsafe(40))"` |
+| `FIREBASE_CREDENTIALS` | Your **entire** Firebase service account JSON as **one line** | Copy the contents of `dnntracker-firebase-adminsdk-*.json`, remove newlines, paste as the value. On Vercel you cannot use a file path. |
+| `ALLOWED_HOSTS` | `your-app.vercel.app` | Optional; add your Vercel domain after first deploy (e.g. `dnntracker.vercel.app`) |
+
+For **FIREBASE_CREDENTIALS**: open your `.json` file, minify it (one line, no line breaks), and paste that string into the value field.
+
+### Step 3: Deploy
+
+Click **Deploy**. Vercel will install dependencies from `requirements.txt` and route all traffic to the Django app via `api/wsgi.py`.
+
+### Step 4: Seed Firestore (first time only)
+
+The serverless app cannot run `manage.py` on Vercel. Seed from your machine once:
+
+```bash
+# In your project, with the same FIREBASE_CREDENTIALS as on Vercel (e.g. in .env)
+source venv/bin/activate
+export FIREBASE_CREDENTIALS="$(cat dnntracker-firebase-adminsdk-fbsvc-bdf1a73e86.json | tr -d '\n')"
+python manage.py seed_topics
+```
+
+Or set `FIREBASE_CREDENTIALS` in `.env` to the same JSON and run `python manage.py seed_topics`.
+
+### Deploy from CLI (alternative)
 
 ```bash
 npm i -g vercel
-```
-
-### 2. Configure environment variables
-
-In **Vercel Dashboard → Project → Settings → Environment Variables**, add:
-
-| Variable | Description |
-|----------|-------------|
-| `DJANGO_SECRET_KEY` | Secret key for Django (generate a random string) |
-| `FIREBASE_CREDENTIALS` | Full service account JSON as a **single-line string** |
-| `ALLOWED_HOSTS` | e.g. `your-app.vercel.app` (or leave default) |
-
-For `FIREBASE_CREDENTIALS`, paste the whole JSON in one line (no newlines). You can minify the downloaded JSON.
-
-### 3. Deploy
-
-```bash
+cd dnn-tracker
 vercel
 ```
 
-Or connect the repo to Vercel and deploy from Git. All requests are routed to the Django WSGI app via `vercel.json` and `api/wsgi.py`.
-
-### 4. After first deploy
-
-Firestore is empty until you run the seed command. Options:
-
-- Run **once** locally with production env vars (e.g. set `FIREBASE_CREDENTIALS` to the same value) and run `python manage.py seed_topics`, or
-- Add a one-off deploy step / script that calls the seed logic (e.g. a Vercel build command that runs the seed if needed), or
-- Use a Firebase Cloud Function or a small script run from your machine that uses the same credentials to seed.
+Add the same environment variables in **Vercel Dashboard → Project → Settings → Environment Variables**, then redeploy if needed.
 
 ## Project structure
 
