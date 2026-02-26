@@ -12,14 +12,16 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'dev-secret-change-in-production')
 DEBUG = os.environ.get('DEBUG', 'True').lower() in ('true', '1', 'yes')
-# On Vercel, only allow .vercel.app so all deployment URLs work (override any env)
+# On Vercel, allow .vercel.app and custom domain dnn.aahas.in
 if os.environ.get('VERCEL') == '1':
-    ALLOWED_HOSTS = ['.vercel.app']
+    ALLOWED_HOSTS = ['.vercel.app', 'dnn.aahas.in']
 else:
-    _allowed = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,.vercel.app').strip()
+    _allowed = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,.vercel.app,dnn.aahas.in').strip()
     ALLOWED_HOSTS = [h.strip() for h in _allowed.split(',') if h.strip()]
     if '.vercel.app' not in ALLOWED_HOSTS:
         ALLOWED_HOSTS.append('.vercel.app')
+    if 'dnn.aahas.in' not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append('dnn.aahas.in')
 
 # Application definition
 INSTALLED_APPS = [
@@ -29,6 +31,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'dnn_tracker.vercel_host.VercelHostMiddleware',  # first: allow Vercel Host before Django checks
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.middleware.common.CommonMiddleware',
