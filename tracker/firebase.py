@@ -17,14 +17,17 @@ def _get_client():
     creds = getattr(settings, "FIREBASE_CREDENTIALS", None)
     if not creds:
         return None
-    import firebase_admin
-    from firebase_admin import credentials, firestore
     try:
-        firebase_admin.get_app()
-    except ValueError:
-        firebase_admin.initialize_app(credentials.Certificate(creds))
-    _client = firestore.client()
-    return _client
+        import firebase_admin
+        from firebase_admin import credentials, firestore
+        try:
+            firebase_admin.get_app()
+        except ValueError:
+            firebase_admin.initialize_app(credentials.Certificate(creds))
+        _client = firestore.client()
+        return _client
+    except Exception:
+        return None
 
 
 def get_db():
@@ -42,17 +45,20 @@ def _topic_doc_id(topic_name):
 
 def get_all_topics():
     """Return list of topic dicts from Firestore."""
-    db = get_db()
-    if not db:
+    try:
+        db = get_db()
+        if not db:
+            return []
+        coll = db.collection(COLLECTION)
+        docs = coll.stream()
+        out = []
+        for doc in docs:
+            d = doc.to_dict()
+            d["id"] = doc.id
+            out.append(d)
+        return sorted(out, key=lambda x: (x.get("order", 999), x.get("topic_name", "")))
+    except Exception:
         return []
-    coll = db.collection(COLLECTION)
-    docs = coll.stream()
-    out = []
-    for doc in docs:
-        d = doc.to_dict()
-        d["id"] = doc.id
-        out.append(d)
-    return sorted(out, key=lambda x: (x.get("order", 999), x.get("topic_name", "")))
 
 
 def get_topic(topic_id):
@@ -108,17 +114,20 @@ def toggle_subtopic(topic_id, subtopic_index, completed):
 
 def get_streak():
     """Get current streak: { last_date: ISO date string, streak_days: int }."""
-    db = get_db()
-    if not db:
+    try:
+        db = get_db()
+        if not db:
+            return {"last_date": None, "streak_days": 0}
+        doc = db.collection(STREAK_COLLECTION).document("current").get()
+        if not doc.exists:
+            return {"last_date": None, "streak_days": 0}
+        d = doc.to_dict()
+        return {
+            "last_date": d.get("last_date"),
+            "streak_days": d.get("streak_days", 0),
+        }
+    except Exception:
         return {"last_date": None, "streak_days": 0}
-    doc = db.collection(STREAK_COLLECTION).document("current").get()
-    if not doc.exists:
-        return {"last_date": None, "streak_days": 0}
-    d = doc.to_dict()
-    return {
-        "last_date": d.get("last_date"),
-        "streak_days": d.get("streak_days", 0),
-    }
 
 
 def record_study_date(date_iso):

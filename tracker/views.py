@@ -54,25 +54,38 @@ def _filter_topics(topics, filter_type, difficulty_filter):
 
 @require_GET
 def dashboard(request):
-    filter_type = request.GET.get("filter", "all")
-    difficulty_filter = request.GET.get("difficulty", "")
-    topics = get_all_topics()
-    for t in topics:
-        t["progress_pct"] = _topic_progress(t)
-    filtered = _filter_topics(topics, filter_type, difficulty_filter)
-    overall = _overall_progress(topics)
-    streak_data = get_streak()
-    context = {
-        "topics": filtered,
-        "all_topics": topics,
-        "overall_progress": overall,
-        "progress_ring_offset": 100 - overall,
-        "streak_days": streak_data.get("streak_days", 0),
-        "filter": filter_type,
-        "difficulty_filter": difficulty_filter,
-        "difficulty_choices": DIFFICULTY_CHOICES,
-    }
-    return render(request, "dashboard.html", context)
+    try:
+        filter_type = request.GET.get("filter", "all")
+        difficulty_filter = request.GET.get("difficulty", "")
+        topics = get_all_topics()
+        for t in topics:
+            t["progress_pct"] = _topic_progress(t)
+        filtered = _filter_topics(topics, filter_type, difficulty_filter)
+        overall = _overall_progress(topics)
+        streak_data = get_streak()
+        context = {
+            "topics": filtered,
+            "all_topics": topics,
+            "overall_progress": overall,
+            "progress_ring_offset": 100 - overall,
+            "streak_days": streak_data.get("streak_days", 0),
+            "filter": filter_type,
+            "difficulty_filter": difficulty_filter,
+            "difficulty_choices": DIFFICULTY_CHOICES,
+        }
+        return render(request, "dashboard.html", context)
+    except Exception:
+        context = {
+            "topics": [],
+            "all_topics": [],
+            "overall_progress": 0,
+            "progress_ring_offset": 100,
+            "streak_days": 0,
+            "filter": "all",
+            "difficulty_filter": "",
+            "difficulty_choices": DIFFICULTY_CHOICES,
+        }
+        return render(request, "dashboard.html", context)
 
 
 @require_GET
